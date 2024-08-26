@@ -32,7 +32,7 @@ def random_neq(l, r, s):
 
 def sample_function(user_train, usernum, itemnum, batch_size, maxlen, result_queue, SEED):
     def sample(uid):
-
+        # 定的用户 ID uid 生成一个样本数据，包括用户序列、正样本和负样本。
         # uid = np.random.randint(1, usernum + 1)
         while len(user_train[uid]) <= 1: user = np.random.randint(1, usernum + 1)
 
@@ -43,7 +43,7 @@ def sample_function(user_train, usernum, itemnum, batch_size, maxlen, result_que
         idx = maxlen - 1
 
         ts = set(user_train[uid])
-        for i in reversed(user_train[uid][:-1]):
+        for i in reversed(user_train[uid][:-1]): # 从后往前，填充整个交互序列
             seq[idx] = i
             pos[idx] = nxt
             if nxt != 0: neg[idx] = random_neq(1, itemnum + 1, ts)
@@ -66,7 +66,7 @@ def sample_function(user_train, usernum, itemnum, batch_size, maxlen, result_que
         result_queue.put(zip(*one_batch))
 
 
-class WarpSampler(object):
+class WarpSampler(object): # 多进程采样训练数据
     def __init__(self, User, usernum, itemnum, batch_size=64, maxlen=10, n_workers=1):
         self.result_queue = Queue(maxsize=n_workers * 10)
         self.processors = []
@@ -76,7 +76,6 @@ class WarpSampler(object):
                                                       usernum,
                                                       itemnum,
                                                       batch_size,
-                                                      maxlen,
                                                       self.result_queue,
                                                       np.random.randint(2e9)
                                                       )))
@@ -96,7 +95,7 @@ class WarpSampler(object):
 def data_partition(fname):
     usernum = 0
     itemnum = 0
-    User = defaultdict(list)
+    User = defaultdict(list) # 通过defaultdict 来创建一个默认值为列表的字典 User
     user_train = {}
     user_valid = {}
     user_test = {}
@@ -109,7 +108,7 @@ def data_partition(fname):
         usernum = max(u, usernum)
         itemnum = max(i, itemnum)
         User[u].append(i)
-
+    # 根据用户的交互记录数，将数据分为训练、验证和测试集如果交互记录少于3条，则所有记录都放入训练集中；否则，最后两条记录分别放入验证集和测试集中，其余记录放入训练集中。
     for user in User:
         nfeedback = len(User[user])
         if nfeedback < 3:

@@ -6,12 +6,26 @@ import argparse
 from model import SASRec
 from utils import *
 
+import debugpy
+try:
+    # 5678 is the default attach port in the VS Code debug configurations. Unless a host and port are specified, host defaults to 127.0.0.1
+    debugpy.listen(("localhost", 9501))
+    print("Waiting for debugger attach")
+    debugpy.wait_for_client()
+except Exception as e:
+    pass
+
+
 def str2bool(s):
     if s not in {'false', 'true'}:
         raise ValueError('Not a valid boolean string')
     return s == 'true'
 
+# 创建 ArgumentParser() 对象
 parser = argparse.ArgumentParser()
+
+
+# 添加参数
 parser.add_argument('--dataset', required=True)
 parser.add_argument('--train_dir', required=True)
 parser.add_argument('--batch_size', default=128, type=int)
@@ -27,7 +41,10 @@ parser.add_argument('--device', default='cuda', type=str)
 parser.add_argument('--inference_only', default=False, type=str2bool)
 parser.add_argument('--state_dict_path', default=None, type=str)
 
+# 解析命令行参数
 args = parser.parse_args()
+
+
 if not os.path.isdir(args.dataset + '_' + args.train_dir):
     os.makedirs(args.dataset + '_' + args.train_dir)
 with open(os.path.join(args.dataset + '_' + args.train_dir, 'args.txt'), 'w') as f:
@@ -36,7 +53,7 @@ f.close()
 
 if __name__ == '__main__':
 
-    u2i_index, i2u_index = build_index(args.dataset)
+    u2i_index, i2u_index = build_index(args.dataset) # 将数据集转化为 从 user 到 item的index
     
     # global dataset
     dataset = data_partition(args.dataset)
@@ -47,7 +64,7 @@ if __name__ == '__main__':
     cc = 0.0
     for u in user_train:
         cc += len(user_train[u])
-    print('average sequence length: %.2f' % (cc / len(user_train)))
+    print('average sequence length: %.2f' % (cc / len(user_train))) # 计算所有训练集中的序列长度 / 训练集中用户的次数
     
     f = open(os.path.join(args.dataset + '_' + args.train_dir, 'log.txt'), 'w')
     f.write('epoch (val_ndcg, val_hr) (test_ndcg, test_hr)\n')
@@ -61,7 +78,7 @@ if __name__ == '__main__':
         except:
             pass # just ignore those failed init layers
 
-    model.pos_emb.weight.data[0, :] = 0
+    model.pos_emb.weight.data[0, :] = 0 # 将位置嵌入和物品嵌入矩阵的第一个向量全设为 0，通常用于处理填充（padding）情况。
     model.item_emb.weight.data[0, :] = 0
 
     # this fails embedding init 'Embedding' object has no attribute 'dim'
